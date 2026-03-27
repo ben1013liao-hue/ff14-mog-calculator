@@ -50,10 +50,10 @@
         .card:hover { border-color: var(--ff-gold); transform: translateY(-5px); }
         .card.hidden { display: none; }
 
-        /* 圖片容器：解決模糊與拉伸關鍵 */
         .img-box {
             width: 100%; aspect-ratio: 1/1; background: #000;
             display: flex; align-items: center; justify-content: center; overflow: hidden;
+            cursor: zoom-in;
         }
         .img-box img {
             width: auto; height: auto; max-width: 95%; max-height: 95%;
@@ -72,6 +72,27 @@
         input[type="number"] {
             width: 60px; background: #000; border: 1px solid var(--ff-gold);
             color: #fff; text-align: center; border-radius: 4px; padding: 6px; font-size: 1rem;
+        }
+
+        /* 🌟 放大彈窗 CSS - 確保預設隱藏 🌟 */
+        #image-modal {
+            display: none; 
+            position: fixed;
+            z-index: 2000;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            cursor: zoom-out;
+            align-items: center;
+            justify-content: center;
+        }
+        #image-modal img {
+            max-width: 480px;
+            width: 90%;
+            height: auto;
+            border: 3px solid var(--ff-gold);
+            border-radius: 8px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.8);
         }
     </style>
 </head>
@@ -94,12 +115,14 @@
         <button class="tab-btn" data-filter="etc">幻卡/地圖/其他</button>
     </div>
 
-    <div class="grid" id="main-grid">
-        </div>
+    <div class="grid" id="main-grid"></div>
+
+    <div id="image-modal" onclick="this.style.display='none'">
+        <img id="modal-img" src="" alt="放大圖">
+    </div>
 
     <script>
         const items = [
-            // 坐騎與飾品
             { n: "甜甜圈耳墜", p: 100, c: "mount", d: "本次活動新登場", e: ".png" },
             { n: "水蛇戒指", p: 50, c: "mount", d: "本次活動新登場", e: ".png" },
             { n: "無暇玲瓏魔笛", p: 50, c: "mount", d: "極無暇靈君掉落", e: ".png" },
@@ -108,12 +131,10 @@
             { n: "月桂冠古卜角笛", p: 30, c: "mount", d: "風精靈族友好部族+12萬Gil", e: ".png" },
             { n: "幽夜神威魔笛", p: 30, c: "mount", d: "極月讀討滅戰", e: ".png" },
             { n: "朱焰神威魔笛", p: 30, c: "mount", d: "極朱雀討滅戰", e: ".png" },
-
-            // 外觀、動作與家具
-            { n: "哈迪斯裝甲", p: 50, c: "gear", d: "Lv80極哈迪斯素材製作", e: ".png" },
+            { n: "黑迪斯裝甲", p: 50, c: "gear", d: "Lv80極黑迪斯素材製作", e: ".png" },
             { n: "髮型樣式：黎明辮", p: 50, c: "gear", d: "博茲雅女王古殿掉落，素材兌換", e: ".png" },
             { n: "演技教材：詛咒", p: 50, c: "gear", d: "博姿雅晶簇x50兌換", e: ".png" },
-            { n: "演技教材：說明計畫", p: 30, c: "gear", d: "新月島副本掉落 / 優雷卡寶箱", e: ".png" },
+            { n: "演技教材：說明計畫", p: 30, c: "gear", d: "新月島副本掉落 / 優雷卡-變異爆炎上鎖寶箱", e: ".png" },
             { n: "管弦樂琴譜：雷轟電轉", p: 50, c: "gear", d: "伊甸共鳴篇1掉落", e: ".png" },
             { n: "休閒外套裝備箱", p: 30, c: "gear", d: "蒼天街庫波好運道-1等獎", e: ".png" },
             { n: "毛巾套裝", p: 30, c: "gear", d: "狼印戰績x3000兌換", e: ".png" },
@@ -123,8 +144,6 @@
             { n: "庭園工具架", p: 20, c: "gear", d: "Lv80煉金術師製作庭具", e: ".png" },
             { n: "群星壁掛", p: 20, c: "gear", d: "Lv80煉金術師製作家具", e: ".png" },
             { n: "蜥蜴人玩偶", p: 20, c: "gear", d: "蜥蜴人友好部族任務+2.5萬Gil", e: ".png" },
-
-            // 紫水系列 (全部拆分)
             { n: "紫水豪士上衣小袴", p: 15, c: "gear", d: "63-紫水宮 (坦職)", e: ".png" },
             { n: "紫水槍士上衣小袴", p: 15, c: "gear", d: "63-紫水宮 (龍/鐮)", e: ".png" },
             { n: "紫水拳士上衣小袴", p: 15, c: "gear", d: "63-紫水宮 (僧/武士)", e: ".png" },
@@ -132,33 +151,28 @@
             { n: "紫水弓士上衣小袴", p: 15, c: "gear", d: "63-紫水宮 (吟遊/機工/舞者)", e: ".png" },
             { n: "紫水術士上衣小袴", p: 15, c: "gear", d: "63-紫水宮 (黑/召/赤/畫/青)", e: ".png" },
             { n: "紫水學士上衣小袴", p: 15, c: "gear", d: "63-紫水宮 (治療職)", e: ".png" },
-
-
-            // 其他與消耗品
             { n: "金碟幣白金卡", p: 30, c: "etc", d: "5萬金碟幣", e: ".png" },
-            { n: "陳舊的特殊地圖S系列", p: 15, c: "etc", d: "活動限定/必定觸發魔紋", e: ".png" },
-            { n: "詳細地圖(共6區)", p: 10, c: "etc", d: "兵團徽章x250/個", e: ".png" },
-            { n: "幻卡：邦達斯那奇_爬蟲", p: 10, c: "etc", d: "骨頜族，啥都吃/田園郡，青花", e: ".png" },
-            { n: "幻卡：月讀_黑迪斯_2P", p: 7, c: "etc", d: "月讀副本/黑迪斯副本/人偶軍事基地掉落", e: ".png" },
+            { n: "陳舊的特殊地圖S系列", p: 15, c: "etc", d: "活動限定藏寶圖-LV70/80/90，必定觸發魔紋", e: ".png" },
+            { n: "詳細地圖(共6區)", p: 10, c: "etc", d: "兵團徽章x250/個-3.0/4.0完成可兌換", e: ".png" },
+            { n: "幻卡：邦達斯那奇_爬蟲", p: 10, c: "etc", d: "骨頜族，啥都吃/田園郡，青花，完成前置任務後可兌換", e: ".png" },
+            { n: "幻卡：月讀_黑迪斯_2P", p: 7, c: "etc", d: "月讀副本/黑迪斯副本/人偶軍事基地掉落，完成前置任務後可兌換", e: ".png" },
             { n: "恩莫族人偶", p: 7, c: "etc", d: "怪物狩獵戰利品x800", e: ".png" },
             { n: "小犰狳", p: 7, c: "etc", d: "避暑離宮副本、新月島寶箱、優雷卡寶箱、朝聖教錯路寶箱", e: ".png" },
-            { n: "管弦樂琴譜：天晴大鯰音頭", p: 7, c: "etc", d: "鯰魚族友好部族任務，小判x3", e: ".png" },
+            { n: "管弦樂琴譜：天晴大鯰音頭", p: 7, c: "etc", d: "鯰魚族友好部族任務", e: ".png" },
             { n: "克里耶蘿蔔 x 5", p: 5, c: "etc", d: "栽培", e: ".png" },
-            { n: "魔法稜晶：職業大師", p: 1, c: "etc", d: "特效消耗品 x 10", e: ".png" },
-
+            { n: "魔法稜晶：職業大師", p: 1, c: "etc", d: "特效消耗品 x 10", e: ".png" }
         ];
 
         const grid = document.getElementById('main-grid');
         const totalDisplay = document.getElementById('grand-total');
 
-        // 生成卡片
         function init() {
-            items.forEach((item, index) => {
+            items.forEach((item) => {
                 const card = document.createElement('div');
                 card.className = `card ${item.c}`;
                 card.setAttribute('data-category', item.c);
                 card.innerHTML = `
-                    <div class="img-box">
+                    <div class="img-box" onclick="zoomImg('img/${item.n}${item.e}')">
                         <img src="img/${item.n}${item.e}" alt="${item.n}" onerror="this.src='https://via.placeholder.com/200x200/111/c2a64d?text=Missing+Image'">
                     </div>
                     <div class="card-body">
@@ -174,33 +188,29 @@
             });
         }
 
-        // 計算總分
         function updateTotal() {
             let total = 0;
             document.querySelectorAll('.qty-input').forEach(input => {
-                const price = parseInt(input.dataset.price);
-                const qty = parseInt(input.value) || 0;
-                total += price * qty;
+                total += (parseInt(input.value) || 0) * parseInt(input.dataset.price);
             });
             totalDisplay.innerText = total.toLocaleString();
         }
 
-        // 過濾器
+        function zoomImg(src) {
+            const modal = document.getElementById('image-modal');
+            const modalImg = document.getElementById('modal-img');
+            modal.style.display = 'flex';
+            modalImg.src = src;
+        }
+
+        // 過濾器邏輯
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.addEventListener('click', function() {
                 const filter = this.dataset.filter;
-                
-                // 按鈕狀態切換
                 document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
                 this.classList.add('active');
-
-                // 卡片過濾
                 document.querySelectorAll('.card').forEach(card => {
-                    if (filter === 'all' || card.dataset.category === filter) {
-                        card.classList.remove('hidden');
-                    } else {
-                        card.classList.add('hidden');
-                    }
+                    card.style.display = (filter === 'all' || card.dataset.category === filter) ? 'flex' : 'none';
                 });
             });
         });
