@@ -3,41 +3,58 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FF14 莫古挑戰：黃金的魔典 - 精確試算表</title>
+    <title>FF14 莫古挑戰：黃金的魔典 </title>
     <style>
         :root {
             --ff-gold: #c2a64d; --ff-blue: #82caff; --ff-dark: #121212;
             --ff-card: #2a2a2e; --ff-pink: #d63384; --ff-border: #444;
+            --ff-star-empty: #999; --ff-star-full: #ffd700;
         }
         body {
             background-color: var(--ff-dark); color: #e0e0e0;
             font-family: "Microsoft JhengHei", "Heiti TC", sans-serif;
             margin: 0; padding: 0; display: flex; flex-direction: column; align-items: center;
         }
+
         /* 懸浮總計欄 */
         .sticky-summary {
             position: fixed; top: 0; width: 100%; background: rgba(18, 18, 18, 0.95);
             backdrop-filter: blur(8px); border-bottom: 2px solid var(--ff-gold);
-            padding: 15px 0; z-index: 1000; display: flex; justify-content: center;
+            padding: 10px 0; z-index: 1000; display: flex; justify-content: center;
         }
         .summary-content {
             width: 90%; max-width: 1200px; display: flex; justify-content: space-between; align-items: center;
         }
+        .timer-display { font-size: 0.8rem; color: #aaa; margin-top: 5px; }
+        .timer-time { color: var(--ff-blue); font-weight: bold; margin-left: 5px; }
         .total-badge {
             background: linear-gradient(135deg, var(--ff-pink), #8a1a4d);
-            padding: 10px 30px; border-radius: 50px; font-weight: bold; font-size: 1.4rem;
+            padding: 8px 25px; border-radius: 50px; font-weight: bold; font-size: 1.3rem;
             box-shadow: 0 4px 15px rgba(214, 51, 132, 0.4); border: 1px solid rgba(255,255,255,0.2);
         }
 
-        /* 分類按鈕 */
-        .filter-tabs { margin-top: 110px; margin-bottom: 25px; display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+        /* 按鈕工具列 */
+        .content-tools {
+            width: 92%; max-width: 1200px; margin-top: 130px; margin-bottom: 15px;
+            display: flex; justify-content: flex-end; gap: 10px;
+        }
+        .tool-btn {
+            background: #333; color: white; border: 1px solid var(--ff-border);
+            padding: 8px 15px; border-radius: 5px; cursor: pointer; transition: 0.2s; font-size: 0.9rem;
+            display: flex; align-items: center; gap: 5px;
+        }
+        .tool-btn:hover { border-color: var(--ff-gold); background: #444; }
+
+        /* 頁籤 */
+        .filter-tabs { width: 92%; max-width: 1200px; margin-bottom: 25px; display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
         .tab-btn {
             background: #333; border: 1px solid var(--ff-gold); color: white;
             padding: 10px 20px; border-radius: 5px; cursor: pointer; transition: 0.2s;
         }
         .tab-btn.active { background: var(--ff-gold); color: black; font-weight: bold; }
+        .tab-fav { color: var(--ff-star-full) !important; border-color: var(--ff-star-full) !important; }
 
-        /* 網格系統 */
+        /* --- 網格模式 (Grid Mode) --- */
         .grid {
             display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
             gap: 20px; width: 92%; max-width: 1200px; padding-bottom: 100px;
@@ -45,71 +62,84 @@
         .card {
             background: var(--ff-card); border: 1px solid var(--ff-border);
             border-radius: 10px; overflow: hidden; display: flex; flex-direction: column;
-            transition: transform 0.2s, border-color 0.2s;
+            position: relative; transition: 0.2s;
         }
-        .card:hover { border-color: var(--ff-gold); transform: translateY(-5px); }
-        .card.hidden { display: none; }
+        .card:hover { border-color: var(--ff-gold); transform: translateY(-3px); }
 
+        /* --- 列表模式 (List Mode) --- 依照圖 868ba7 格式化 */
+        .grid.list-view { display: flex; flex-direction: column; gap: 5px; }
+        .grid.list-view .card { flex-direction: row; align-items: center; padding: 5px 20px; height: auto; }
+        .grid.list-view .img-box { display: none; } /* 列表模式隱藏格子圖 */
+        .grid.list-view .star-icon { position: static; margin-right: 15px; }
+        .grid.list-view .card-body { padding: 0; flex-direction: row; align-items: center; flex-grow: 1; justify-content: flex-start; gap: 15px; }
+        
+        /* 列表模式下的文字排版 */
+        .grid.list-view .item-name { min-height: auto; margin: 0; font-size: 1rem; flex: 0 0 auto; min-width: 180px; }
+        .grid.list-view .item-desc { 
+            display: inline-block; margin: 0; font-size: 0.8rem; color: #777; 
+            flex-grow: 1; border-left: 1px solid #444; padding-left: 15px;
+        }
+        
+        .grid.list-view .card-foot { border: none; padding: 0; flex: 0 0 auto; gap: 15px; }
+        
+        /* 列表模式詳細按鈕 */
+        .details-btn {
+            display: none; background: transparent; border: 1px solid var(--ff-gold); color: var(--ff-gold);
+            padding: 3px 10px; border-radius: 4px; cursor: pointer; font-size: 0.75rem;
+        }
+        .grid.list-view .details-btn { display: inline-block; }
+
+        /* 星星 */
+        .star-icon {
+            position: absolute; top: 10px; left: 10px; z-index: 100;
+            font-size: 1.5rem; color: var(--ff-star-empty); cursor: pointer; text-shadow: 0 0 5px #000;
+        }
+        .star-icon.active { color: var(--ff-star-full); }
+
+        /* 圖片容器 */
         .img-box {
             width: 100%; aspect-ratio: 1/1; background: #000;
-            display: flex; align-items: center; justify-content: center; overflow: hidden;
-            cursor: zoom-in;
+            display: flex; align-items: center; justify-content: center; cursor: zoom-in;
         }
-        .img-box img {
-            width: auto; height: auto; max-width: 95%; max-height: 95%;
-            object-fit: contain; image-rendering: auto;
-        }
+        .img-box img { width: auto; height: auto; max-width: 95%; max-height: 95%; object-fit: contain; }
 
-        .card-body { padding: 15px; flex-grow: 1; display: flex; flex-direction: column; }
-        .item-name { font-size: 1rem; font-weight: bold; color: var(--ff-gold); min-height: 2.8rem; line-height: 1.4; margin-bottom: 5px; }
-        .item-desc { font-size: 0.8rem; color: #999; margin-bottom: 12px; flex-grow: 1; }
-        
-        .card-foot {
-            display: flex; justify-content: space-between; align-items: center;
-            border-top: 1px solid #444; padding-top: 12px;
-        }
-        .stone-price { color: var(--ff-blue); font-weight: bold; font-size: 1.1rem; }
-        input[type="number"] {
-            width: 60px; background: #000; border: 1px solid var(--ff-gold);
-            color: #fff; text-align: center; border-radius: 4px; padding: 6px; font-size: 1rem;
-        }
+        .card-body { padding: 15px; display: flex; flex-direction: column; }
+        .item-name { font-size: 1rem; font-weight: bold; color: var(--ff-gold); min-height: 2.8rem; line-height: 1.4; }
+        .item-desc { font-size: 0.8rem; color: #999; margin: 8px 0; flex-grow: 1; }
+        .card-foot { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #444; padding-top: 10px; }
+        .stone-price { color: var(--ff-blue); font-weight: bold; }
+        input[type="number"] { width: 60px; background: #000; border: 1px solid var(--ff-gold); color: #fff; text-align: center; padding: 5px; border-radius: 4px; }
 
-        /* 🌟 放大彈窗 CSS - 確保預設隱藏 🌟 */
+        /* 燈箱 */
         #image-modal {
-            display: none; 
-            position: fixed;
-            z-index: 2000;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            background-color: rgba(0, 0, 0, 0.9);
-            cursor: zoom-out;
-            align-items: center;
-            justify-content: center;
+            display: none; position: fixed; z-index: 2000; top: 0; left: 0;
+            width: 100%; height: 100%; background: rgba(0,0,0,0.9);
+            align-items: center; justify-content: center; cursor: zoom-out;
         }
-        #image-modal img {
-            max-width: 480px;
-            width: 90%;
-            height: auto;
-            border: 3px solid var(--ff-gold);
-            border-radius: 8px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.8);
-        }
+        #image-modal img { max-width: 480px; width: 90%; border: 3px solid var(--ff-gold); border-radius: 8px; }
     </style>
 </head>
 <body>
 
     <div class="sticky-summary">
         <div class="summary-content">
-            <div style="display: flex; flex-direction: column;">
-                <span style="color: var(--ff-gold); font-weight: bold; font-size: 1.2rem;">黃金的魔典</span>
-                <span style="font-size: 0.8rem; color: #888;">FF14 莫古莫古★大挑戰</span>
+            <div>
+                <span style="color: var(--ff-gold); font-weight: bold; font-size: 1.2rem;">FF14 莫古莫古★大收集</span>
+                <span style="font-size: 0.8rem; color: #888;">黃金的魔典</span>
+                <div class="timer-display">周任刷新倒數：<span class="timer-time" id="reset-timer">計算中...</span></div>
             </div>
             <div class="total-badge">總需神石：<span id="grand-total">0</span></div>
         </div>
     </div>
 
+    <div class="content-tools">
+        <button class="tool-btn" onclick="toggleViewMode()">📺 切換顯示模式</button>
+        <button class="tool-btn" onclick="resetQuantities()">🔄 重置數量</button>
+    </div>
+
     <div class="filter-tabs">
         <button class="tab-btn active" data-filter="all">全部道具</button>
+        <button class="tab-btn tab-fav" data-filter="favorites">★ 最愛追蹤</button>
         <button class="tab-btn" data-filter="mount">坐騎/飾品</button>
         <button class="tab-btn" data-filter="gear">外觀/動作/家具</button>
         <button class="tab-btn" data-filter="etc">幻卡/地圖/其他</button>
@@ -118,10 +148,11 @@
     <div class="grid" id="main-grid"></div>
 
     <div id="image-modal" onclick="this.style.display='none'">
-        <img id="modal-img" src="" alt="放大圖">
+        <img id="modal-img" src="" alt="詳細圖">
     </div>
 
     <script>
+        // 道具資料庫 (備註文字已設定在 d 欄位)
         const items = [
             { n: "甜甜圈耳墜", p: 100, c: "mount", d: "本次活動新登場", e: ".png" },
             { n: "水蛇戒指", p: 50, c: "mount", d: "本次活動新登場", e: ".png" },
@@ -153,7 +184,7 @@
             { n: "紫水學士上衣小袴", p: 15, c: "gear", d: "63-紫水宮 (治療職)", e: ".png" },
             { n: "金碟幣白金卡", p: 30, c: "etc", d: "5萬金碟幣", e: ".png" },
             { n: "陳舊的特殊地圖S系列", p: 15, c: "etc", d: "活動限定藏寶圖-LV70/80/90，必定觸發魔紋", e: ".png" },
-            { n: "詳細地圖(共6區)", p: 10, c: "etc", d: "兵團徽章x250/個-3.0/4.0完成可兌換", e: ".png" },
+            { n: "詳細地圖(共6區)", p: 10, c: "etc", d: "兵團徽章x250個-3.0/4.0完成可兌換", e: ".png" },
             { n: "幻卡：邦達斯那奇_爬蟲", p: 10, c: "etc", d: "骨頜族，啥都吃/田園郡，青花，完成前置任務後可兌換", e: ".png" },
             { n: "幻卡：月讀_黑迪斯_2P", p: 7, c: "etc", d: "月讀副本/黑迪斯副本/人偶軍事基地掉落，完成前置任務後可兌換", e: ".png" },
             { n: "恩莫族人偶", p: 7, c: "etc", d: "怪物狩獵戰利品x800", e: ".png" },
@@ -163,58 +194,114 @@
             { n: "魔法稜晶：職業大師", p: 1, c: "etc", d: "特效消耗品 x 10", e: ".png" }
         ];
 
-        const grid = document.getElementById('main-grid');
-        const totalDisplay = document.getElementById('grand-total');
+        let viewMode = localStorage.getItem('mog_view_mode') || 'grid';
+        const gridEl = document.getElementById('main-grid');
 
         function init() {
+            gridEl.innerHTML = '';
+            if(viewMode === 'list') gridEl.classList.add('list-view');
+            else gridEl.classList.remove('list-view');
+
             items.forEach((item) => {
+                const savedQty = localStorage.getItem(`mog_qty_${item.n}`) || 0;
+                const isFav = localStorage.getItem(`mog_fav_${item.n}`) === 'true';
+
                 const card = document.createElement('div');
                 card.className = `card ${item.c}`;
                 card.setAttribute('data-category', item.c);
+                card.setAttribute('data-name', item.n);
+                
                 card.innerHTML = `
+                    <div class="star-icon ${isFav ? 'active' : ''}" onclick="toggleFav('${item.n}', this)">★</div>
                     <div class="img-box" onclick="zoomImg('img/${item.n}${item.e}')">
-                        <img src="img/${item.n}${item.e}" alt="${item.n}" onerror="this.src='https://via.placeholder.com/200x200/111/c2a64d?text=Missing+Image'">
+                        <img src="img/${item.n}${item.e}" onerror="this.src='https://via.placeholder.com/200?text=Missing'">
                     </div>
                     <div class="card-body">
                         <div class="item-name">${item.n}</div>
                         <div class="item-desc">${item.d}</div>
                         <div class="card-foot">
                             <span class="stone-price">💎 ${item.p}</span>
-                            <input type="number" class="qty-input" value="0" min="0" data-price="${item.p}" oninput="updateTotal()">
+                            <input type="number" class="qty-input" value="${savedQty}" min="0" data-price="${item.p}" data-name="${item.n}" oninput="updateQty(this)">
+                            <button class="details-btn" onclick="zoomImg('img/${item.n}${item.e}')">詳細</button>
                         </div>
                     </div>
                 `;
-                grid.appendChild(card);
+                gridEl.appendChild(card);
             });
+            updateTotal();
+        }
+
+        function toggleViewMode() {
+            viewMode = (viewMode === 'grid') ? 'list' : 'grid';
+            localStorage.setItem('mog_view_mode', viewMode);
+            init();
+            const activeFilter = document.querySelector('.tab-btn.active').dataset.filter;
+            applyFilter(activeFilter);
+        }
+
+        function updateQty(el) {
+            localStorage.setItem(`mog_qty_${el.dataset.name}`, el.value);
+            updateTotal();
         }
 
         function updateTotal() {
-            let total = 0;
-            document.querySelectorAll('.qty-input').forEach(input => {
-                total += (parseInt(input.value) || 0) * parseInt(input.dataset.price);
-            });
-            totalDisplay.innerText = total.toLocaleString();
+            let t = 0;
+            document.querySelectorAll('.qty-input').forEach(i => t += (parseInt(i.value)||0) * parseInt(i.dataset.price));
+            document.getElementById('grand-total').innerText = t.toLocaleString();
+        }
+
+        function resetQuantities() {
+            if(confirm('確定清除所有數量？')) {
+                document.querySelectorAll('.qty-input').forEach(i => { i.value = 0; localStorage.removeItem(`mog_qty_${i.dataset.name}`); });
+                updateTotal();
+            }
+        }
+
+        function toggleFav(n, el) {
+            const active = el.classList.toggle('active');
+            localStorage.setItem(`mog_fav_${n}`, active);
         }
 
         function zoomImg(src) {
-            const modal = document.getElementById('image-modal');
-            const modalImg = document.getElementById('modal-img');
-            modal.style.display = 'flex';
-            modalImg.src = src;
+            document.getElementById('modal-img').src = src;
+            document.getElementById('image-modal').style.display = 'flex';
         }
 
-        // 過濾器邏輯
+        function applyFilter(filter) {
+            document.querySelectorAll('.card').forEach(card => {
+                if (filter === 'all') card.style.display = 'flex';
+                else if (filter === 'favorites') {
+                    const isFav = localStorage.getItem(`mog_fav_${card.dataset.name}`) === 'true';
+                    card.style.display = isFav ? 'flex' : 'none';
+                } else {
+                    card.style.display = (card.dataset.category === filter) ? 'flex' : 'none';
+                }
+            });
+        }
+
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.addEventListener('click', function() {
-                const filter = this.dataset.filter;
                 document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
                 this.classList.add('active');
-                document.querySelectorAll('.card').forEach(card => {
-                    card.style.display = (filter === 'all' || card.dataset.category === filter) ? 'flex' : 'none';
-                });
+                applyFilter(this.dataset.filter);
             });
         });
 
+        function updateTimer() {
+            const now = new Date();
+            let reset = new Date();
+            reset.setDate(now.getDate() + (9 - now.getDay()) % 7);
+            reset.setHours(16, 0, 0, 0);
+            if (reset <= now) reset.setDate(reset.getDate() + 7);
+            const diff = reset - now;
+            const d = Math.floor(diff / 86400000);
+            const h = Math.floor((diff % 86400000) / 3600000);
+            const m = Math.floor((diff % 3600000) / 60000);
+            const s = Math.floor((diff % 60000) / 1000);
+            document.getElementById('reset-timer').innerText = `${d}天 ${h}時 ${m}分 ${s}秒`;
+        }
+        setInterval(updateTimer, 1000);
+        updateTimer();
         init();
     </script>
 </body>
